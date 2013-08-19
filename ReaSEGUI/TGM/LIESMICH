@@ -1,0 +1,13 @@
+Topology Generator TGM
+----------------------
+
+Voraussetzungen fuer die Berechnung der Powerlaw-Werte:
+GSL (gnu scientific library) wurde installiert (letzte Version 1.10) und
+die Pfade wurden entsprechend gesetzt. Am einfachsten ist es, im TGM
+Verzeichnis einen Softlink auf das GSL-Verzeichnis zu legen. Nach einem Make
+sollte eigentlich alles laufen.
+
+Nutzung: 
+Zur Zeit lassen sich AS-Level Topologien oder Router-Level Topologien 
+erzeugen. Weiterhin lassen sich AS-Level Topologien erzeugen, in denen 
+jedes AS wiederum eine eigene Router-Level Topologie enthaelt.

@@ -1,0 +1,75 @@
+ReaSEGUI v1.0x --> ReaSEGUI v1.1
+-------------------
+
+20080828
+
+Fixed an open ticket: In case of insertion of special router types in the tab Server Settings, in some cases the router name was replaced only in the definition but not in the connections part of the NED file. This problem now is fixed.
+
+20080924
+
+Fixed an open ticket: In case of node replacement the names of the nodes are replaced, too, not only the type of the node.
+
+20080930
+
+Fixed an open ticket: The parameters Core Ratio and Cross Link Ratio could not be changed within the GUI. In addition, problems occured during loading of a parameter file in the Topology tab. Now, these parameters can be changed in the GUI as well as directly in the parameter file.
+
+20090103
+
+Fixed some minor bugs in the perl scripts setServer.pl and replaceNodeType.pl
+Naming rules of the perl scripts have changed: Replaced entities now keep their initial role in the name. The new role is additionally added to the original name.
+Some minor bugs have been resolved that deal with the graphical appearance of ReaSEGUI. In addition multiple simplifications have been integrated, e.g. the automatic file name suggestion and the auto-save option of parameter files.
+Finally, the exemplary topologies have been adapted to the new scripts and functionalities.
+
+ReaSEGUI v1.1 --> v1.2
+-------------------
+
+Fixed a bug in TGM, which created duplicate connections between routers.
+
+ReaSEGUI v1.2 --> v1.21
+-------------------
+
+Fixed some bugs in ReaSE-OMNeT4-src, which prevented sending the configured number of server replies correctly.
+
+ReaSEGUI v1.21 --> v1.22
+------------------
+
+This version now can be used either in combination with OMNeT++ and INET (as before) or together with the OverSim P2P simulator for OMNeT++.
+
+ReaSEGUI v1.22 --> v1.23
+------------------
+
+Bugfix in ServerSettings.java: Return value of method getCore2CoreLatency has been of type float instead of type int.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

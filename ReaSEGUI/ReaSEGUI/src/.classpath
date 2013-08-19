@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path=""/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="lib" path="C:/Dokumente und Einstellungen/Tom/Desktop/ReaSEGUI/dist/lib/swing-layout-1.0.3.jar">
+		<attributes>
+			<attribute name="javadoc_location" value="jar:file:/C:/Dokumente und Einstellungen/Tom/Desktop/ReaSEGUI/dist/lib/swing-layout-1.0.3.jar!/"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Dokumente und Einstellungen/Tom/Desktop/ReaSEGUI/dist/lib/beansbinding-1.2.1.jar">
+		<attributes>
+			<attribute name="javadoc_location" value="jar:file:/C:/Dokumente und Einstellungen/Tom/Desktop/ReaSEGUI/dist/lib/beansbinding-1.2.1.jar!/"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="output" path="rease/bin"/>
+</classpath>

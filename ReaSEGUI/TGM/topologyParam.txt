@@ -1,0 +1,37 @@
+# Topology Parameter File
+# You can choose to generate only AS- or only router-level topology
+# You can also generate AS- with router-level topology
+
+
+# If you don't want AS-Level, comment the following line
+<AS-Level>
+# number of AS-level nodes in topology
+	<AS-Nodes><5>
+# which edge-degree must an AS node have to be a transit AS
+	<Transit-Node-Thresh><4>
+# PFP Growing Parameter
+	<Parameter-P><0.4>
+	<Parameter-Delta><0.048>
+
+
+# If you don't want R-Level, comment the following line
+<Router-Level>
+# maximum number of router-level nodes in topology
+	<R-Node-Max><10>
+# minimum number of router-level nodes in topology
+	<R-Node-Min><7>
+# percentage of core nodes in topology
+	<Core-Ratio><20>
+# percentage of Core-Cross-Links
+	<Core-Cross-Link-Ratio><40>
+# maximum number of host per edge router
+	<Hosts-Per-Edge-Max><10>
+# miminum number of hosts per edge router
+	<Hosts-Per-Edge-Min><5>
+
+
+<Misc>
+# output NED file
+	<Topology-File><topology.ned>
+# If Compiler Flag STATSON is set: file prefix for statistics/powerlaw values
+	<Stats-Prefix><powerlaws>

@@ -1,0 +1,33 @@
+HostLabel = host
+EdgeLabel = edge
+GatewayLabel = gw
+CoreLabel = core
+StubLabel = sas
+TransitLabel = tas
+
+Host2Edge = 0.128
+Edge2Host = 0.768
+Server2Edge = 10.0
+Edge2Gateway = 155.0
+Gateway2Core = 1000.0
+Core2Core = 2500.0
+Stub2Stub = 5000.0
+Transit2Stub = 5000.0
+Transit2Transit = 10000.0
+
+ServerFraction = 10.0
+ServerTypes
+{
+  NameServer = 3
+  StreamingServer = 5
+  BackupServer = 2
+  InteractiveServer = 20
+  WebServer = 50
+  MailServer = 20
+}
+
+RouterFraction = 1.0
+RouterTypes
+{
+  TraceRouter = 100
+}

@@ -1,0 +1,1191 @@
+/*
+ * To change this template, choose Tools | Templates
+ * and open the template in the editor.
+ */
+
+package rease;
+
+import java.beans.PropertyChangeListener;
+import java.beans.PropertyChangeSupport;
+
+/*
+ * # Naming of different node types
+HostLabel    = host
+EdgeLabel    = edge
+GatewayLabel = gw
+CoreLabel    = core
+StubLabel    = sas
+TransitLabel = tas
+
+# Bandwidth in Mbit/s
+Host2Edge       = 0.128
+Edge2Host       = 0.768
+Server2Edge     = 10
+Edge2Gateway    = 155
+Gateway2Core    = 1000
+Core2Core       = 2500
+Stub2Stub       = 5000
+Transit2Stub    = 5000
+Transit2Transit = 10000
+
+# Server types and fraction (of all edges)
+ServerFraction = 10.0
+ServerTypes
+{
+  NameServer        = 3
+  StreamingServer   = 5
+  BackupServer      = 2
+  InteractiveServer = 20
+  WebServer         = 50
+  MailServer        = 20
+}
+
+# Router types and fraction
+RouterFraction = 1.0
+RouterTypes
+{
+  TraceRouter = 100
+}
+ * */
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.PrintStream;
+import java.util.StringTokenizer;
+
+/**
+ * This class manages the parameters for creation of a realistic topology
+ * 
+ * @author  Pascal Zschumme, Thomas Gamer
+ * @version 1.0-developer version
+ */
+
+public class ServerSettings
+{
+    /**
+     * Constructor
+     */
+
+    public ServerSettings()
+    {
+        hostLabel = "host";
+        edgeLabel = "edge";
+        gatewayLabel = "gw";
+        coreLabel = "core";
+        stubLabel = "sas";
+        transitLabel = "tas";
+    }
+    
+    // state variables for possible parameters
+    // naming of different node types
+    private String hostLabel;
+    private String edgeLabel;
+    private String gatewayLabel;
+    private String coreLabel;
+    private String stubLabel;
+    private String transitLabel;
+    
+    // bandwidth of channels between different nodes types in Mbit/s
+    private float host2Edge;
+    private float edge2Host;
+    private float server2Edge;
+    private float edge2Gateway;
+    private float gateway2Core;
+    private float core2Gateway;
+    private float core2Core;
+    private float stub2Stub;
+    private float transit2Stub;
+    private float transit2Transit;
+
+    // latency of channels between different nodes types in ms
+    static private boolean useCustomLatencies = false;
+    private int host2EdgeLatency;
+    private int edge2HostLatency;
+    private int server2EdgeLatency;
+    private int edge2GatewayLatency;
+    private int gateway2CoreLatency;
+    private int core2GatewayLatency;
+    private int core2CoreLatency;
+    private int stub2StubLatency;
+    private int transit2StubLatency;
+    private int transit2TransitLatency;
+    
+    // fraction of host nodes replaced by servers
+    private float serverFraction;
+    // fraction of single server types from total fraction
+    private int nameServer;
+    private int streamingServer;
+    private int backupServer;
+    private int interactiveServer;
+    private int webServer;
+    private int mailServer;
+    private int serverSum;
+    
+    // fraction of router nodes replaced by special router types
+    private float routerFraction;
+    // fraction of single router types from total fraction
+    private int traceRouter;
+    private int routerSum;
+    
+    private PropertyChangeSupport changeSupport = new PropertyChangeSupport(this);
+    
+    
+    /**
+     * Parameters configured by the GUI are written to parameter file
+     * 
+     * @param target Output file for parameter file
+     * @param settings Set of parameters to be written into parameter file
+     * @throws Exception Thrown if fraction is greater than 0 but sum of single
+     *                   fractions does not equal 100%
+     */
+    public static void saveServerSettings(File target, ServerSettings settings)
+            throws Exception
+    {
+        FileOutputStream outputStream = new FileOutputStream(target);
+        PrintStream stream = new PrintStream(outputStream);
+        
+        stream.println("HostLabel = " + settings.getHostLabel());
+        stream.println("EdgeLabel = " + settings.getEdgeLabel());
+        stream.println("GatewayLabel = " + settings.getGatewayLabel());
+        stream.println("CoreLabel = " + settings.getCoreLabel());
+        stream.println("StubLabel = " + settings.getStubLabel());
+        stream.println("TransitLabel = " + settings.getTransitLabel());
+        
+        stream.println("");
+        
+        stream.println("Host2Edge = " + settings.getHost2Edge());
+        stream.println("Edge2Host = " + settings.getEdge2Host());
+        stream.println("Server2Edge = " + settings.getServer2Edge());
+        stream.println("Edge2Gateway = " + settings.getEdge2Gateway());
+        stream.println("Gateway2Core = " + settings.getGateway2Core());
+        stream.println("Core2Core = " + settings.getCore2Core());
+        stream.println("Stub2Stub = " + settings.getStub2Stub());
+        stream.println("Transit2Stub = " + settings.getTransit2Stub());
+        stream.println("Transit2Transit = " + settings.getTransit2Transit());
+
+        if (settings.getUseCustomLatencies()) {
+        stream.println("");
+
+        stream.println("Host2EdgeLatency = " + settings.getHost2EdgeLatency());
+        stream.println("Edge2HostLatency = " + settings.getEdge2HostLatency());
+        stream.println("Server2EdgeLatency = " + settings.getServer2EdgeLatency());
+        stream.println("Edge2GatewayLatency = " + settings.getEdge2GatewayLatency());
+        stream.println("Gateway2CoreLatency = " + settings.getGateway2CoreLatency());
+        stream.println("Core2CoreLatency = " + settings.getCore2CoreLatency());
+        stream.println("Stub2StubLatency = " + settings.getStub2StubLatency());
+        stream.println("Transit2StubLatency = " + settings.getTransit2StubLatency());
+        stream.println("Transit2TransitLatency = " + settings.getTransit2TransitLatency());
+        }
+
+        stream.println("");
+        
+        if(settings.getServerFraction() != 0 && settings.getServerSum() == 100) {
+            stream.println("ServerFraction = " + settings.getServerFraction());
+            stream.println("ServerTypes");
+            stream.println("{");
+            stream.println("  NameServer = " + settings.getNameServer());
+            stream.println("  StreamingServer = " + settings.getStreamingServer());
+            stream.println("  BackupServer = " + settings.getBackupServer());
+            stream.println("  InteractiveServer = " + settings.getInteractiveServer());
+            stream.println("  WebServer = " + settings.getWebServer());
+            stream.println("  MailServer = " + settings.getMailServer());
+            stream.println("}");
+        
+            stream.println("");
+        } else if(settings.getServerFraction() == 0) {
+            stream.println("ServerFraction = " + settings.getServerFraction());            
+        } else {
+            throw new Exception("ServerFraction > 0 but sum of ServerTypes != 100%");
+        }
+        
+        if(settings.getRouterFraction() != 0 && settings.getRouterSum() == 100) {
+            stream.println("RouterFraction = " + settings.getRouterFraction());
+            stream.println("RouterTypes");
+            stream.println("{");
+            stream.println("  TraceRouter = " + settings.getTraceRouter());
+            stream.println("}");
+        } else if(settings.getRouterFraction() == 0) {
+            stream.println("RouterFraction = " + settings.getRouterFraction());
+        } else {
+            throw new Exception("RouterFraction > 0 but sum of RouterTypes != 100%");
+        }
+        
+        stream.close();
+    }
+    
+    /**
+     * Parameters for server and special router integration are read 
+     * from user-given parameter file
+     * 
+     * @param source Parameter file given by user
+     * @return Set of parameters read from user-given file
+     * @throws Exception Thrown if invalid tag or symbol is read
+     */
+    //@SuppressWarnings("empty-statement")
+    public static ServerSettings loadServerSettings(File source)
+            throws Exception
+    {
+            BufferedReader reader = new BufferedReader(new FileReader(source));
+            
+            ServerSettings settings = new ServerSettings();
+
+            // save category: Null (Names and Bandwidth), ServerTypes, or RouterTypes
+            String category = null;
+            String line = null;
+
+            for (int i = 0; (line = reader.readLine()) != null; i++)
+            {
+                line = line.trim();
+
+                if (line.length() == 0)
+                {
+                    continue;
+                }
+                
+                if (line.startsWith("#"))
+                {
+                    continue;
+                }
+
+                if(line.equals("{") )
+                {
+                    if(category == null)
+                        throw new Exception("Invalid { symbol found at line " + i + ".");
+                }
+                else if(line.equals("}"))
+                {
+                    if(category == null)
+                        throw new Exception("Invalid } symbol found at line " + i + ".");
+                    else
+                        category = null;
+                }
+                else
+                {
+                    StringTokenizer tokenizer = new StringTokenizer(line, " = ");
+                    if(tokenizer.countTokens() == 1)
+                    {
+                        category = tokenizer.nextToken();
+                    }
+                    else if(tokenizer.countTokens() == 2)
+                    {
+                        String tag = tokenizer.nextToken();
+                        String value = tokenizer.nextToken();
+                        
+                        if(category == null)
+                        {
+                            if(tag.equals("HostLabel"))
+                                settings.setHostLabel(value);
+                            else if(tag.equals("EdgeLabel"))
+                                settings.setEdgeLabel(value);
+                            else if(tag.equals("GatewayLabel"))
+                                settings.setGatewayLabel(value);
+                            else if(tag.equals("CoreLabel"))
+                                settings.setCoreLabel(value);
+                            else if(tag.equals("StubLabel"))
+                                settings.setStubLabel(value);
+                            else if(tag.equals("TransitLabel"))
+                                settings.setTransitLabel(value);
+                            else if(tag.equals("Host2Edge"))
+                                settings.setHost2Edge(Float.parseFloat(value));
+                            else if(tag.equals("Edge2Host"))
+                                settings.setEdge2Host(Float.parseFloat(value));
+                            else if(tag.equals("Server2Edge"))
+                                settings.setServer2Edge(Float.parseFloat(value));
+                            else if(tag.equals("Edge2Gateway"))
+                                settings.setEdge2Gateway(Float.parseFloat(value));
+                            else if(tag.equals("Gateway2Core"))
+                                settings.setGateway2Core(Float.parseFloat(value));
+                            else if(tag.equals("Core2Core"))
+                                settings.setCore2Core(Float.parseFloat(value));
+                            else if(tag.equals("Stub2Stub"))
+                                settings.setStub2Stub(Float.parseFloat(value));
+                            else if(tag.equals("Transit2Stub"))
+                                settings.setTransit2Stub(Float.parseFloat(value));
+                            else if(tag.equals("Transit2Transit"))
+                                settings.setTransit2Transit(Float.parseFloat(value));
+                            else if(tag.equals("Host2EdgeLatency"))
+                                settings.setHost2EdgeLatency(Integer.parseInt(value));
+                            else if(tag.equals("Edge2HostLatency"))
+                                settings.setEdge2HostLatency(Integer.parseInt(value));
+                            else if(tag.equals("Server2EdgeLatency"))
+                                settings.setServer2EdgeLatency(Integer.parseInt(value));
+                            else if(tag.equals("Edge2GatewayLatency"))
+                                settings.setEdge2GatewayLatency(Integer.parseInt(value));
+                            else if(tag.equals("Gateway2CoreLatency"))
+                                settings.setGateway2CoreLatency(Integer.parseInt(value));
+                            else if(tag.equals("Core2CoreLatency"))
+                                settings.setCore2CoreLatency(Integer.parseInt(value));
+                            else if(tag.equals("Stub2StubLatency"))
+                                settings.setStub2StubLatency(Integer.parseInt(value));
+                            else if(tag.equals("Transit2StubLatency"))
+                                settings.setTransit2StubLatency(Integer.parseInt(value));
+                            else if(tag.equals("Transit2TransitLatency"))
+                                settings.setTransit2TransitLatency(Integer.parseInt(value));
+                            else if(tag.equals("ServerFraction"))
+                                settings.setServerFraction(Float.parseFloat(value));
+                            else if(tag.equals("RouterFraction"))
+                                settings.setRouterFraction(Float.parseFloat(value));
+                            else
+                                throw new Exception("Invalid tag " + tag + " in " + category + " category found at line " + i + ".");
+                        }
+                        else if(category.equals("ServerTypes"))
+                        {
+                            if(tag.equals("NameServer"))
+                                settings.setNameServer(Integer.parseInt(value));
+                            else if(tag.equals("StreamingServer"))
+                                settings.setStreamingServer(Integer.parseInt(value));
+                            else if(tag.equals("BackupServer"))
+                                settings.setBackupServer(Integer.parseInt(value));
+                            else if(tag.equals("InteractiveServer"))
+                                settings.setInteractiveServer(Integer.parseInt(value));
+                            else if(tag.equals("WebServer"))
+                                settings.setWebServer(Integer.parseInt(value));
+                            else if(tag.equals("MailServer"))
+                                settings.setMailServer(Integer.parseInt(value));
+                            else
+                                throw new Exception("Invalid tag " + tag + " in " + category + " category found at line " + i + ".");
+                        }
+                        else if(category.equals("RouterTypes"))
+                        {
+                            if(tag.equals("TraceRouter"))
+                                settings.setTraceRouter(Integer.parseInt(value));
+                            else
+                                throw new Exception("Invalid tag " + tag + " in " + category + " category found at line " + i + ".");
+                        }
+                        else
+                        {
+                            throw new Exception("Invalid category found at line " + i + ".");
+                        }
+                    }
+                    else
+                        throw new Exception("Invalid syntax found at line " + i + ".");
+                }
+            }
+
+                settings.setUseCustomLatencies(anyLatencyLoaded(settings));
+                
+           return settings;
+    }
+    
+    /**
+     * Static method for creation of default parameter values for the GUI
+     * 
+     * @return Set of default parameters
+     */
+    public static ServerSettings createDefaultServerSettings()
+    {
+        ServerSettings settings = new ServerSettings();
+        
+        settings.setHostLabel("host");
+        settings.setEdgeLabel("edge");
+        settings.setGatewayLabel("gw");
+        settings.setCoreLabel("core");
+        settings.setStubLabel("sas");
+        settings.setTransitLabel("tas");
+        
+        settings.setHost2Edge(0.128f);
+        settings.setEdge2Host(0.768f);
+        settings.setServer2Edge(10);
+        settings.setEdge2Gateway(155);
+        settings.setGateway2Core(1000);
+        settings.setCore2Core(2500);
+        settings.setStub2Stub(5000);
+        settings.setTransit2Stub(5000);
+        settings.setTransit2Transit(10000);
+
+        settings.setHost2EdgeLatency(5);
+        settings.setEdge2HostLatency(5);
+        settings.setServer2EdgeLatency(5);
+        settings.setEdge2GatewayLatency(1);
+        settings.setGateway2CoreLatency(1);
+        settings.setCore2CoreLatency(1);
+        settings.setStub2StubLatency(20);
+        settings.setTransit2StubLatency(20);
+        settings.setTransit2TransitLatency(50);
+        
+        settings.setServerFraction(10);
+        settings.setNameServer(3);
+        settings.setStreamingServer(5);
+        settings.setBackupServer(2);
+        settings.setInteractiveServer(20);
+        settings.setWebServer(50);
+        settings.setMailServer(20);
+        
+        settings.setRouterFraction(1);
+        settings.setTraceRouter(100);
+        
+        return settings;
+    }
+    
+    /**
+     * Add property change listener for this class
+     * 
+     * @param listener Property change listener
+     */
+    public void addPropertyChangeListener(PropertyChangeListener listener)
+    {
+        changeSupport.addPropertyChangeListener(listener);
+    }
+    
+    /**
+     * Remove property change listener for this class
+     * 
+     * @param listener Property change listener
+     */
+    public void removePropertyChangeListener(PropertyChangeListener listener)
+    {
+        changeSupport.removePropertyChangeListener(listener);
+    }
+
+    /**
+     * Get method for backupServer
+     * 
+     * @return Returns fraction of backupServers from total fraction of servers
+     */
+    public int getBackupServer()
+    {
+        return backupServer;
+    }
+
+    /**
+     * Set method for backupServer
+     * 
+     * @param backupServer Fraction of backupServers from total fraction of servers
+     */
+    public void setBackupServer(int backupServer)
+    {
+        int old = this.backupServer;
+        this.backupServer = backupServer;
+        changeSupport.firePropertyChange("backupServer", old, backupServer);
+        this.updateServerSum();
+    }
+
+    /**
+     * Get method for core2Core
+     * 
+     * @return Returns bandwidth for core2Core channels
+     */
+    public float getCore2Core()
+    {
+        return core2Core;
+    }
+
+    /**
+     * Set method for core2Core
+     * 
+     * @param core2Core Bandwidth for core2Core channels
+     */
+    public void setCore2Core(float core2Core)
+    {
+        float old = this.core2Core;
+        this.core2Core = core2Core;
+        changeSupport.firePropertyChange("core2Core", old, core2Core);
+    }
+
+    /**
+     * Get method for core2Gateway
+     * 
+     * @return Returns bandwidth for core2Gateway channels
+     */
+    public float getCore2Gateway()
+    {
+        return core2Gateway;
+    }
+
+    /**
+     * Set method for core2Gateway
+     * 
+     * @param core2Gateway Bandwidth for core2Gateway channels
+     */
+    public void setCore2Gateway(float core2Gateway)
+    {
+        float old = this.core2Gateway;
+        this.core2Gateway = core2Gateway;
+        changeSupport.firePropertyChange("core2Gateway", old, core2Gateway);
+    }
+
+    /**
+     * Get method for coreLabel
+     * 
+     * @return Returns label for core nodes of router-Level topology
+     */
+    public String getCoreLabel()
+    {
+        return coreLabel;
+    }
+
+    /**
+     * Set method for coreLabel
+     * 
+     * @param coreLabel Label for core nodes of router-Level topology
+     */
+    public void setCoreLabel(String coreLabel)
+    {
+        String old = this.coreLabel;
+        this.coreLabel = coreLabel;
+        changeSupport.firePropertyChange("coreLabel", old, coreLabel);
+    }
+
+    /**
+     * Get method for edge2Gateway
+     * 
+     * @return Returns bandwidth for edge2Gateway channels
+     */
+    public float getEdge2Gateway()
+    {
+        return edge2Gateway;
+    }
+
+    /**
+     * Set method for edge2Gateway
+     * 
+     * @param edge2Gateway Bandwidth for edge2Gateway channels
+     */
+    public void setEdge2Gateway(float edge2Gateway)
+    {
+        float old = this.edge2Gateway;
+        this.edge2Gateway = edge2Gateway;
+        changeSupport.firePropertyChange("edge2Gateway", old, edge2Gateway);
+    }
+
+    /**
+     * Get method for edge2Host
+     * 
+     * @return Returns bandwidth for edge2Host channels
+     */
+    public float getEdge2Host()
+    {
+        return edge2Host;
+    }
+
+    /**
+     * Set method for edge2Host
+     * 
+     * @param edge2Host Bandwidth for edge2Host channels
+     */
+    public void setEdge2Host(float edge2Host)
+    {
+        float old = this.edge2Host;
+        this.edge2Host = edge2Host;
+        changeSupport.firePropertyChange("edge2Host", old, edge2Host);
+    }
+
+    /**
+     * Get method for edgeLabel
+     * 
+     * @return Returns label for edge nodes of router-Level topology
+     */
+    public String getEdgeLabel()
+    {
+        return edgeLabel;
+    }
+
+    /**
+     * Set method for edgeLabel
+     * 
+     * @param edgeLabel Label for edge nodes of router-Level topology
+     */
+    public void setEdgeLabel(String edgeLabel)
+    {
+        String old = this.edgeLabel;
+        this.edgeLabel = edgeLabel;
+        changeSupport.firePropertyChange("edgeLabel", old, edgeLabel);
+    }
+
+    /**
+     * Get method for gatewayLabel
+     * 
+     * @return Returns label for gateway nodes of Router-Level topology
+     */
+    public String getGatewayLabel()
+    {
+        return gatewayLabel;
+    }
+
+    /**
+     * Set method for gatewayLabel
+     * 
+     * @param gatewayLabel Label for gateway nodes of Router-Level topology
+     */
+    public void setGatewayLabel(String gatewayLabel)
+    {
+        String old = this.gatewayLabel;
+        this.gatewayLabel = gatewayLabel;
+        changeSupport.firePropertyChange("gatewayLabel", old, gatewayLabel);
+    }
+
+    /**
+     * Get method for gateway2Core
+     * 
+     * @return Returns bandwidth for gateway2Core channels
+     */
+    public float getGateway2Core()
+    {
+        return gateway2Core;
+    }
+
+    /**
+     * Set method for gateway2Core
+     * 
+     * @param gateway2Core Bandwidth for gateway2Core channels
+     */
+    public void setGateway2Core(float gateway2Core)
+    {
+        float old = this.gateway2Core;
+        this.gateway2Core = gateway2Core;
+        changeSupport.firePropertyChange("gateway2Core", old, gateway2Core);
+    }
+
+    /**
+     * Get method for host2Edge
+     * 
+     * @return Returns bandwidth for host2Edge channels
+     */
+    public float getHost2Edge()
+    {
+        return host2Edge;
+    }
+
+    /**
+     * Set method for host2Edge
+     * 
+     * @param host2Edge Bandwidth for host2Edge channels
+     */
+    public void setHost2Edge(float host2Edge)
+    {
+        float old = this.host2Edge;
+        this.host2Edge = host2Edge;
+        changeSupport.firePropertyChange("host2Edge", old, host2Edge);
+    }
+
+    /**
+     * Get method for hostLabel
+     * 
+     * @return Returns label for host nodes of Router-Level topology
+     */
+    public String getHostLabel()
+    {
+        return hostLabel;
+    }
+
+    /**
+     * Set method for hostLabel
+     * 
+     * @param hostLabel Label for host nodes of Router-Level topology
+     */
+    public void setHostLabel(String hostLabel)
+    {
+        String old = this.hostLabel;
+        this.hostLabel = hostLabel;
+        changeSupport.firePropertyChange("hostLabel", old, hostLabel);
+    }
+
+    /**
+     * Get method for interactiveServer
+     * 
+     * @return Returns fraction of interactiveServers from total fraction of servers
+     */
+    public int getInteractiveServer()
+    {
+        return interactiveServer;
+    }
+
+    /**
+     * Set method for interactiveServer
+     * 
+     * @param interactiveServer Fraction of interactiveServers from total fraction of servers
+     */
+    public void setInteractiveServer(int interactiveServer)
+    {
+        int old = this.interactiveServer;
+        this.interactiveServer = interactiveServer;
+        changeSupport.firePropertyChange("interactiveServer", old, interactiveServer);
+        this.updateServerSum();
+    }
+
+    /**
+     * Get method for mailServer
+     * 
+     * @return Returns fraction of mailServers from total fraction of servers
+     */
+    public int getMailServer()
+    {
+        return mailServer;
+    }
+
+    /**
+     * Set method for mailServer
+     * 
+     * @param mailServer Fraction of mailServers from total fraction of servers
+     */
+    public void setMailServer(int mailServer)
+    {
+        int old = this.mailServer;
+        this.mailServer = mailServer;
+        changeSupport.firePropertyChange("mailServer", old, mailServer);
+        this.updateServerSum();
+    }
+
+    /**
+     * Get method for nameServer
+     * 
+     * @return Returns fraction of nameServers from total fraction of servers
+     */
+    public int getNameServer()
+    {
+        return nameServer;
+    }
+
+    /**
+     * Set method for nameServer
+     * 
+     * @param nameServer Fraction of nameServers from total fraction of servers
+     */
+    public void setNameServer(int nameServer)
+    {
+        int old = this.nameServer;
+        this.nameServer = nameServer;
+        changeSupport.firePropertyChange("nameServer", old, nameServer);
+        this.updateServerSum();
+    }
+
+    /**
+     * Get method for routerFraction 
+     * 
+     * @return Returns fraction of router nodes that are replaced by special router types
+     */
+    public float getRouterFraction()
+    {
+        return routerFraction;
+    }
+
+    /**
+     * Set method for routerFraction
+     * 
+     * @param routerFraction Fraction of router nodes that are replaced by special router types
+     */
+    public void setRouterFraction(float routerFraction)
+    {
+        float old = this.routerFraction;
+        this.routerFraction = routerFraction;
+        changeSupport.firePropertyChange("routerFraction", old, routerFraction);
+    }
+
+    /**
+     * Get method for server2Edge
+     * 
+     * @return Returns bandwidth for server2Edge channels
+     */
+    public float getServer2Edge()
+    {
+        return server2Edge;
+    }
+
+    /**
+     * Set method for server2Edge
+     * 
+     * @param server2Edge Bandwidth for server2Edge channels
+     */
+    public void setServer2Edge(float server2Edge)
+    {
+        float old = this.server2Edge;
+        this.server2Edge = server2Edge;
+        changeSupport.firePropertyChange("server2Edge", old, server2Edge);
+    }
+
+    /**
+     * Get method for serverFraction
+     * 
+     * @return Returns fraction of host nodes that are replaced by servers
+     */
+    public float getServerFraction()
+    {
+        return this.serverFraction;
+    }
+
+    /**
+     * Set method for serverFraction
+     * 
+     * @param serverFraction Fraction of host nodes that are replaced by servers
+     */
+    public void setServerFraction(float serverFraction)
+    {
+        float old = this.serverFraction;
+        this.serverFraction = serverFraction;
+        changeSupport.firePropertyChange("serverFraction", old, serverFraction);
+    }
+
+    /**
+     * Get method for streamingServer
+     * 
+     * @return Returns fraction of streamingServers from total fraction of servers
+     */
+    public int getStreamingServer()
+    {
+        return streamingServer;
+    }
+
+    /**
+     * Set method for streamingServer
+     * 
+     * @param streamingServer Fraction of streamingServers from total fraction of servers
+     */
+    public void setStreamingServer(int streamingServer)
+    {
+        int old = this.streamingServer;
+        this.streamingServer = streamingServer;
+        changeSupport.firePropertyChange("streamingServer", old, streamingServer);
+        this.updateServerSum();
+    }
+
+    /**
+     * Get method for stub2Stub
+     * 
+     * @return Returns bandwidth for stub2Stub channels
+     */
+    public float getStub2Stub()
+    {
+        return stub2Stub;
+    }
+
+    /**
+     * Set method for stub2Stub
+     * 
+     * @param stub2Stub Bandwidth for stub2Stub channels
+     */
+    public void setStub2Stub(float stub2Stub)
+    {
+        float old = this.stub2Stub;
+        this.stub2Stub = stub2Stub;
+        changeSupport.firePropertyChange("stub2Stub", old, stub2Stub);
+    }
+
+    /**
+     * Get method for stubLabel
+     * 
+     * @return Returns label for stub nodes of AS-Level topology
+     */
+    public String getStubLabel()
+    {
+        return stubLabel;
+    }
+
+    /**
+     * Set method for stubLabel
+     * 
+     * @param stubLabel Label for stub nodes of AS-Level topology
+     */
+    public void setStubLabel(String stubLabel)
+    {
+        String old = this.stubLabel;
+        this.stubLabel = stubLabel;
+        changeSupport.firePropertyChange("stubLabel", old, stubLabel);
+    }
+
+    /**
+     * Get method for traceRouter
+     * 
+     * @return Returns fraction of traceRouters from total fraction of servers
+     */
+    public int getTraceRouter()
+    {
+        return traceRouter;
+    }
+
+    /**
+     * Set method for traceRouter
+     * 
+     * @param traceRouter Fraction of traceRouters from total fraction of servers
+     */
+    public void setTraceRouter(int traceRouter)
+    {
+        int old = this.traceRouter;
+        this.traceRouter = traceRouter;
+        changeSupport.firePropertyChange("traceRouter", old, traceRouter);
+        this.updateRouterSum();
+    }
+
+    /**
+     * Get method for transit2Stub
+     * 
+     * @return Returns bandwidth for transit2Stub channels
+     */
+    public float getTransit2Stub()
+    {
+        return transit2Stub;
+    }
+
+    /**
+     * Set method for transit2Stub
+     * 
+     * @param transit2Stub Bandwidth for transit2Stub channels
+     */
+    public void setTransit2Stub(float transit2Stub)
+    {
+        float old = this.transit2Stub;
+        this.transit2Stub = transit2Stub;
+        changeSupport.firePropertyChange("transit2Stub", old, transit2Stub);
+    }
+
+    /**
+     * Get method for transit2Transit
+     * 
+     * @return Returns bandwidth for transit2Transit channels
+     */
+    public float getTransit2Transit()
+    {
+        return transit2Transit;
+    }
+
+    /**
+     * Set method for transit2Transit
+     * 
+     * @param transit2Transit Bandwidth for transit2Transit channels
+     */
+    public void setTransit2Transit(float transit2Transit)
+    {
+        float old = this.transit2Transit;
+        this.transit2Transit = transit2Transit;
+        changeSupport.firePropertyChange("transit2Transit", old, transit2Transit);
+    }
+
+    /**
+     * Get method for transitLabel
+     * 
+     * @return Returns label for transit nodes of AS-Level topology
+     */
+    public String getTransitLabel()
+    {
+        return transitLabel;
+    }
+
+    /**
+     * Set method for transitLabel
+     * 
+     * @param transitLabel Label for transit nodes of AS-Level topology
+     */
+    public void setTransitLabel(String transitLabel)
+    {
+        String old = this.transitLabel;
+        this.transitLabel = transitLabel;
+        changeSupport.firePropertyChange("transitLabel", old, transitLabel);
+    }
+
+    /**
+     * Get method for webServer
+     * 
+     * @return Returns fraction of webServers from total fraction of servers
+     */
+    public int getWebServer()
+    {
+        return webServer;
+    }
+
+    /**
+     * Set method for webServer
+     * 
+     * @param webServer Fraction of webServers from total fraction of servers
+     */
+    public void setWebServer(int webServer)
+    {
+        int old = this.webServer;
+        this.webServer = webServer;
+        changeSupport.firePropertyChange("webServer", old, webServer);
+        this.updateServerSum();
+    }
+
+    /**
+     * Get method for serverSum
+     * 
+     * @return Returns sum of single server type fractions
+     */
+    public int getServerSum() {
+        return serverSum;
+    }
+
+    /**
+     * Set method for serverSum
+     * 
+     * @param serverSum Sum of single server type fractions
+     */
+    public void setServerSum(int serverSum) {
+        int old = this.serverSum;
+        this.serverSum = serverSum;
+        changeSupport.firePropertyChange("serverSum", old, serverSum);
+    }
+    
+    /**
+     * Updates sum of single server type fractions by summing up all single values
+     */
+    public void updateServerSum() {
+        int old = this.serverSum;
+        this.serverSum = this.backupServer + this.interactiveServer + this.mailServer + this.nameServer + this.streamingServer + this.webServer;
+        changeSupport.firePropertyChange("serverSum", old, serverSum);
+    }
+
+    /**
+     * Get method for routerSum
+     * 
+     * @return Returns sum of single router type fractions
+     */
+    public int getRouterSum() {
+        return routerSum;
+    }
+
+    /**
+     * Get method for routerSum
+     * 
+     * @param routerSum Sum of single router type fractions
+     */
+    public void setRouterSum(int routerSum) {
+        int old = this.routerSum;
+        this.routerSum = routerSum;
+        changeSupport.firePropertyChange("routerSum", old, routerSum);
+    }
+    
+    /**
+     * Updates sum of single router type fractions by summing up all single values
+     */
+   public void updateRouterSum() {
+        int old = this.routerSum;
+        this.routerSum = this.traceRouter;
+        changeSupport.firePropertyChange("routerSum", old, routerSum);
+    }
+
+
+    public float getCore2CoreLatency() {
+        return core2CoreLatency;
+    }
+
+    public void setCore2CoreLatency(int core2CoreLatency) {
+        int old = this.core2CoreLatency;
+        this.core2CoreLatency = core2CoreLatency;
+        changeSupport.firePropertyChange("core2CoreLatency", old, core2CoreLatency);
+    }
+
+    public int getCore2GatewayLatency() {
+        return core2GatewayLatency;
+    }
+
+    public void setCore2GatewayLatency(int core2GatewayLatency) {
+        int old = this.core2GatewayLatency;
+        this.core2GatewayLatency = core2GatewayLatency;
+        changeSupport.firePropertyChange("core2GatewayLatency", old, core2GatewayLatency);
+    }
+
+    public int getEdge2GatewayLatency() {
+        return edge2GatewayLatency;
+    }
+
+    public void setEdge2GatewayLatency(int edge2GatewayLatency) {
+        int old = this.edge2GatewayLatency;
+        this.edge2GatewayLatency = edge2GatewayLatency;
+        changeSupport.firePropertyChange("edge2GatewayLatency", old, edge2GatewayLatency);
+    }
+
+    public int getEdge2HostLatency() {
+        return edge2HostLatency;
+    }
+
+    public void setEdge2HostLatency(int edge2HostLatency) {
+        int old = this.edge2HostLatency;
+        this.edge2HostLatency = edge2HostLatency;
+        changeSupport.firePropertyChange("edge2HostLatency", old, edge2HostLatency);
+    }
+
+    public int getGateway2CoreLatency() {
+        return gateway2CoreLatency;
+    }
+
+    public void setGateway2CoreLatency(int gateway2CoreLatency) {
+        int old = this.gateway2CoreLatency;
+        this.gateway2CoreLatency = gateway2CoreLatency;
+        changeSupport.firePropertyChange("gateway2CoreLatency", old, gateway2CoreLatency);
+    }
+
+    public int getHost2EdgeLatency() {
+        return host2EdgeLatency;
+    }
+
+    public void setHost2EdgeLatency(int host2EdgeLatency) {
+        int old = this.host2EdgeLatency;
+        this.host2EdgeLatency = host2EdgeLatency;
+        changeSupport.firePropertyChange("host2EdgeLatency", old, host2EdgeLatency);
+    }
+
+    public int getServer2EdgeLatency() {
+        return server2EdgeLatency;
+    }
+
+    public void setServer2EdgeLatency(int server2EdgeLatency) {
+        int old = this.server2EdgeLatency;
+        this.server2EdgeLatency = server2EdgeLatency;
+        changeSupport.firePropertyChange("server2EdgeLatency", old, server2EdgeLatency);
+    }
+
+    public int getStub2StubLatency() {
+        return stub2StubLatency;
+    }
+
+    public void setStub2StubLatency(int stub2StubLatency) {
+        int old = this.stub2StubLatency;
+        this.stub2StubLatency = stub2StubLatency;
+        changeSupport.firePropertyChange("stub2StubLatency", old,stub2StubLatency);
+    }
+
+    public int getTransit2StubLatency() {
+        return transit2StubLatency;
+    }
+
+    public void setTransit2StubLatency(int transit2StubLatency) {
+        int old = this.transit2StubLatency;
+        this.transit2StubLatency = transit2StubLatency;
+        changeSupport.firePropertyChange("transit2StubLatency", old, transit2StubLatency);
+    }
+
+    public int getTransit2TransitLatency() {
+        return transit2TransitLatency;
+    }
+
+    public void setTransit2TransitLatency(int transit2TransitLatency) {
+        int old = this.transit2TransitLatency;
+        this.transit2TransitLatency = transit2TransitLatency;
+        changeSupport.firePropertyChange("transit2TransitLatency", old, transit2TransitLatency);
+    }
+
+
+    public boolean getUseCustomLatencies() {
+        return useCustomLatencies;
+    }
+
+    public void setUseCustomLatencies(boolean new_useCustomLatencies) {
+        boolean old = useCustomLatencies;
+        useCustomLatencies = new_useCustomLatencies;
+        changeSupport.firePropertyChange("useCustomLatencies", old, new_useCustomLatencies);
+    }
+
+    public static boolean anyLatencyLoaded(ServerSettings settings) {
+        if (settings.core2CoreLatency != 0)
+            return true;
+        if (settings.core2GatewayLatency != 0)
+            return true;
+        if (settings.edge2GatewayLatency != 0)
+            return true;
+        if (settings.edge2HostLatency != 0)
+            return true;
+        if (settings.gateway2CoreLatency != 0)
+            return true;
+        if (settings.host2EdgeLatency != 0)
+            return true;
+        if (settings.server2EdgeLatency != 0)
+            return true;
+        if (settings.stub2StubLatency != 0)
+            return true;
+        if (settings.transit2StubLatency != 0)
+            return true;
+        if (settings.transit2TransitLatency != 0)
+            return true;
+        return false;
+    }
+}
