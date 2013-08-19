@@ -1,0 +1,9 @@
+<Router-Level>
+	<R-Node-Max><25>
+	<R-Node-Min><15>
+	<Core-Ratio><5>
+	<Core-Cross-Link-Ratio><20>
+	<Hosts-Per-Edge-Max><8>
+	<Hosts-Per-Edge-Min><4>
+<Misc>
+	<Topology-File><topology_router.ned>
