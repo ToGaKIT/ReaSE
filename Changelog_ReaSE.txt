@@ -1,0 +1,35 @@
+ReaSE v1.1 --> v1.2
+-------------------
+
+Updated TCP_hack implementation to the current version of the INET framework
+(commit , 2010-03-13). In addition, some more fixes have been necessary in order
+to support the current version of the INET framework.
+
+Added collection of statistics in module TribeFloodNetwork. In addition, 
+implementation of other DDoS attacks than SYN flooding has been fixed. 
+Added FIN flooding attack.
+
+Added collection of statistics in module InetUser. Bugfix in requesting
+responsible connection manager.
+
+Some small bugfixes in module ConnectionManager that mainly deal with the
+situation, in which no traffic profile is selected.
+
+Some changes eliminating warnings while compiling. In addition, necessary
+changes for gcc-4.3 and gcc-4.4 have been included.
+
+ReaSE v1.2 --> v1.21
+-------------------
+
+Fixed some bugs regarding the number of server reply packets of the automatically generated background traffic.
+
+ReaSE v1.2 --> v1.22
+-------------------
+
+This version now can be used either in combination with OMNeT++ and INET (as before) or together with the OverSim P2P simulator for OMNeT++.
+
+ReaSE v1.2 --> v1.23
+-------------------
+
+Since with version 1.22 something went completely wrong with building the tarball archive, I fixed these problems and named the version, which now really
+works with the OverSim P2P simulator, v1.23.
